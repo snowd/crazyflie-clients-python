@@ -50,6 +50,8 @@ from cfclient.utils.guiconfig import GuiConfig
 from cfclient.utils.logconfigreader import LogConfigReader
 from cfclient.utils.config_manager import ConfigManager
 
+import cflib.server
+
 import cfclient.ui.toolboxes
 import cfclient.ui.tabs
 import cflib.crtp
@@ -110,6 +112,7 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         self.statusBar().addWidget(self._statusbar_label)
 
         self.joystickReader = JoystickReader()
+        self.lastDevice = self.joystickReader.inputdevice
         self._active_device = ""
         self.configGroup = QActionGroup(self._menu_mappings, exclusive=True)
         self._load_input_data()
@@ -141,6 +144,7 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         self.menuItemExit.triggered.connect(self.closeAppRequest)
         self.batteryUpdatedSignal.connect(self.updateBatteryVoltage)
         self._menuitem_rescandevices.triggered.connect(self._rescan_devices)
+        self._menuitem_use_remote_device.triggered.connect(self._use_remote_device)
         self._menuItem_openconfigfolder.triggered.connect(self._open_config_folder)
            
         self._auto_reconnect_enabled = GuiConfig().get("auto_reconnect")
@@ -198,7 +202,12 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         self.toolboxes = []
         self.toolboxesMenuItem.setMenu(QtGui.QMenu())
         for t_class in cfclient.ui.toolboxes.toolboxes:
+
             toolbox = t_class(cfclient.ui.pluginhelper)
+            if toolbox.getName() == 'Keyboard Controller':
+                toolbox.addUpdateCallback(self.joystickReader.input_updated)
+                self.keycontroller = toolbox
+
             dockToolbox = MyDockWidget(toolbox.getName())
             dockToolbox.setWidget(toolbox)
             self.toolboxes += [dockToolbox, ]
@@ -241,6 +250,9 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                     t.toggle()
         except Exception as e:
             logger.warning("Exception while opening tabs [%s]", e)
+
+        # socket server
+        self.server = cflib.server.SocketReceiver(self.cf.commander.send_setpoint)
 
     def setUIState(self, newState, linkURI=""):
         self.uiState = newState
@@ -297,6 +309,19 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         if (len(devs) > 0):
             self.device_discovery(devs)
 
+    def _use_remote_device(self):
+        if self._menuitem_use_remote_device.isChecked():
+            if self.server is None:
+                self.server = cflib.server.SocketReceiver(self.cf.commander.send_setpoint)
+            self.server.start()
+        else:
+            if self.server is not None:
+                self.server.stop()
+            self.server = None
+
+        #self.joystickReader.useremoteinput(self._menuitem_use_remote_device.isChecked())
+        #self._update_input()
+
     def configInputDevice(self):
         self.inputConfig = InputConfigDialogue(self.joystickReader)
         self.inputConfig.show()
@@ -351,6 +376,8 @@ class MainUI(QtGui.QMainWindow, main_window_class):
             self.quickConnect()
 
     def closeEvent(self, event):
+        if self.keycontroller is not None:
+            self.keycontroller.disable()
         self.hide()
         self.cf.close_link()
         GuiConfig().save_file()
