@@ -1,5 +1,5 @@
 __author__ = 'snowd'
-__all__ = '[KeyboardControllerToolbox]'
+__all__ = '[KeyboardController]'
 
 import sys, time
 
@@ -32,10 +32,10 @@ class FlieParams:
         self.thrust = 0.0
 
 
-class KeyboardControllerToolbox(QtGui.QWidget, keyboardcontroller_class):
+class KeyboardController(QtGui.QWidget, keyboardcontroller_class):
 
     def __init__(self, helper, *args):
-        super(KeyboardControllerToolbox, self).__init__()
+        super(KeyboardController, self).__init__()
         self.setupUi(self)
         #self.update.connect(self.console.insertPlainText)
         self.helper = helper

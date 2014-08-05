@@ -50,11 +50,12 @@ from cfclient.utils.guiconfig import GuiConfig
 from cfclient.utils.logconfigreader import LogConfigReader
 from cfclient.utils.config_manager import ConfigManager
 
-import cflib.server
 
 import cfclient.ui.toolboxes
 import cfclient.ui.tabs
 import cflib.crtp
+
+from cfclient.ui.toolboxes.KeyboardController import KeyboardController
 
 from cflib.crazyflie.log import Log, LogVariable, LogConfig
 
@@ -144,7 +145,6 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         self.menuItemExit.triggered.connect(self.closeAppRequest)
         self.batteryUpdatedSignal.connect(self.updateBatteryVoltage)
         self._menuitem_rescandevices.triggered.connect(self._rescan_devices)
-        self._menuitem_use_remote_device.triggered.connect(self._use_remote_device)
         self._menuItem_openconfigfolder.triggered.connect(self._open_config_folder)
            
         self._auto_reconnect_enabled = GuiConfig().get("auto_reconnect")
@@ -177,6 +177,9 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                                                            linkURI))
         self._log_error_signal.connect(self._logging_error)
 
+        # Keyboard control
+        self.useKeyboardControl.clicked.connect(self.use_keyboard_controll)
+
         # Connect link quality feedback
         self.cf.link_quality_updated.add_callback(self.linkQualitySignal.emit)
         self.linkQualitySignal.connect(
@@ -204,10 +207,6 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         for t_class in cfclient.ui.toolboxes.toolboxes:
 
             toolbox = t_class(cfclient.ui.pluginhelper)
-            if toolbox.getName() == 'Keyboard Controller':
-                toolbox.addUpdateCallback(self.joystickReader.input_updated)
-                self.keycontroller = toolbox
-
             dockToolbox = MyDockWidget(toolbox.getName())
             dockToolbox.setWidget(toolbox)
             self.toolboxes += [dockToolbox, ]
@@ -241,6 +240,12 @@ class MainUI(QtGui.QMainWindow, main_window_class):
             if not tab.enabled:
                 item.setEnabled(False)
 
+        # Keyboard fly init
+        self.keycontroller = KeyboardController(cfclient.ui.pluginhelper)
+        self.keycontroller.addUpdateCallback(self.joystickReader.input_updated)
+        self.keycontroldock = MyDockWidget(self.keycontroller.getName())
+        self.keycontroldock.setWidget(self.keycontroller)
+
         # First instantiate all tabs and then open them in the correct order
         try:
             for tName in GuiConfig().get("open_tabs").split(","):
@@ -250,9 +255,6 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                     t.toggle()
         except Exception as e:
             logger.warning("Exception while opening tabs [%s]", e)
-
-        # socket server
-        self.server = cflib.server.SocketReceiver(self.cf.commander.send_setpoint)
 
     def setUIState(self, newState, linkURI=""):
         self.uiState = newState
@@ -308,19 +310,6 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         devs = self.joystickReader.getAvailableDevices()
         if (len(devs) > 0):
             self.device_discovery(devs)
-
-    def _use_remote_device(self):
-        if self._menuitem_use_remote_device.isChecked():
-            if self.server is None:
-                self.server = cflib.server.SocketReceiver(self.cf.commander.send_setpoint)
-            self.server.start()
-        else:
-            if self.server is not None:
-                self.server.stop()
-            self.server = None
-
-        #self.joystickReader.useremoteinput(self._menuitem_use_remote_device.isChecked())
-        #self._update_input()
 
     def configInputDevice(self):
         self.inputConfig = InputConfigDialogue(self.joystickReader)
@@ -390,6 +379,19 @@ class MainUI(QtGui.QMainWindow, main_window_class):
             self.setUIState(UIState.DISCONNECTED)
         else:
             self.connectDialogue.show()
+
+    def use_keyboard_controll(self):
+        display = self.useKeyboardControl.isChecked()
+
+        if display and not self.keycontroldock.isVisible():
+            self.keycontroldock.widget().enable()
+            self.addDockWidget(self.keycontroldock.widget().preferedDockArea(),
+                               self.keycontroldock)
+            self.keycontroldock.show()
+        elif not display:
+            self.keycontroldock.widget().disable()
+            self.removeDockWidget(self.keycontroldock)
+            self.keycontroldock.hide()
 
     def inputDeviceError(self, error):
         self.cf.close_link()
