@@ -72,6 +72,16 @@
           </property>
          </widget>
         </item>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="connectButton">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Connect to a Crazyflie&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Connect</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QPushButton" name="quickConnectButton">
           <property name="enabled">
@@ -126,18 +136,8 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QPushButton" name="connectButton">
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Connect to a Crazyflie&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="text">
-           <string>Connect</string>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="3">
-         <widget class="QPushButton" name="keyControlButton">
+         <widget class="QCheckBox" name="useKeyboardControl">
           <property name="text">
            <string>Keyboard Fly</string>
           </property>
@@ -219,7 +219,6 @@
     <addaction name="_menu_devices"/>
     <addaction name="_menu_mappings"/>
     <addaction name="_menuitem_rescandevices"/>
-    <addaction name="_menuitem_use_remote_device"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuCrazyflie"/>

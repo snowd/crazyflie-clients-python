@@ -16,9 +16,9 @@ STEP_THRUST = 8
 
 RATIO_THRUST = 65535 / 100
 
-OFFSET_ROLL = 12
-OFFSET_PITCH = 1
-OFFSET_YAW = -5
+OFFSET_ROLL = -4
+OFFSET_PITCH = 2
+OFFSET_YAW = 0.8
 
 DEBUG = False
 
@@ -97,7 +97,8 @@ class KeyboardControllerToolbox(QtGui.QWidget, keyboardcontroller_class):
 
     def disable(self):
         self.isenable = False
-        self.param.stop()
+        if self.param is not None:
+            self.param.stop()
         self.param = None
 
     def preferedDockArea(self):
